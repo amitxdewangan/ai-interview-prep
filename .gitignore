@@ -1,0 +1,54 @@
+# Dependencies
+node_modules/
+/.pnp
+.pnp.js
+
+# Environment and secrets
+.env
+.env.local
+.env.example
+.env.development.local
+.env.test.local
+.env.production.local
+*.pem
+
+# Turborepo and build outputs
+.turbo/
+dist/
+build/
+out/
+.next/
+*.tsbuildinfo
+
+# Testing and coverage
+coverage/
+.nyc_output/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+*.log
+
+# Evaluator & temporary JSON outputs
+kits.json
+kits.test.json
+
+# OS and Editor files
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Build and plan files
+PROJECT_BUILDING_GUIDE.md
+TODO.md

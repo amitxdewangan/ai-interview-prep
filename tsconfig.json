@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@repo/shared": ["packages/shared/src/index.ts"],
+      "@repo/shared/*": ["packages/shared/src/*"]
+    }
+  },
+  "references": [
+    { "path": "packages/shared" },
+    { "path": "apps/server" },
+    { "path": "apps/client" }
+  ],
+  "files": []
+}
