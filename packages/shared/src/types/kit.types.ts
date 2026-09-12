@@ -45,3 +45,4 @@ export type BatchInput = z.infer<typeof BatchInputSchema>;
 export type BatchCaseError = z.infer<typeof BatchCaseErrorSchema>;
 export type BatchCaseResult = z.infer<typeof BatchCaseResultSchema>;
 export type BatchOutputFile = z.infer<typeof BatchOutputSchema>;
+export type BatchOutput = BatchOutputFile;
