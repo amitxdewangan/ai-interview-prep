@@ -20,3 +20,4 @@ export * from './pipeline/steps/04_generateQuestions.js';
 export * from './pipeline/steps/05_generateFlashcards.js';
 export * from './pipeline/secondPass.js';
 export * from './pipeline/orchestrator.js';
+export * from './pipeline/batchEvaluator.js';
