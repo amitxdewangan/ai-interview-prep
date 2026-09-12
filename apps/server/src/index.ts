@@ -13,3 +13,8 @@ export * from './pipeline/deterministic/scheduleEngine.js';
 export * from './llm/rateLimiter.js';
 export * from './llm/jsonParser.js';
 export * from './llm/client.js';
+export * from './pipeline/steps/01_extractRequirements.js';
+export * from './pipeline/steps/02_researchCompany.js';
+export * from './pipeline/steps/03_generateBrief.js';
+export * from './pipeline/steps/04_generateQuestions.js';
+export * from './pipeline/steps/05_generateFlashcards.js';
