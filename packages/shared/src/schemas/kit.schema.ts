@@ -80,3 +80,13 @@ export const AppendixAKitSchema = z.object({
   schedule: ScheduleSchema,
   coverage: CoverageSchema,
 });
+
+export const ItemOriginSchema = z.enum(['generated', 'user_edited', 'user_added']);
+
+export const ItemMetaSchema = z.object({
+  origin: ItemOriginSchema.default('generated'),
+  isPinned: z.boolean().default(false),
+});
+
+export const KitItemMetaMapSchema = z.record(z.string(), ItemMetaSchema);
+

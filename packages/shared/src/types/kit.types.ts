@@ -14,6 +14,9 @@ import {
   ScheduleSchema,
   CoverageSchema,
   AppendixAKitSchema,
+  ItemOriginSchema,
+  ItemMetaSchema,
+  KitItemMetaMapSchema,
 } from '../schemas/kit.schema.js';
 import {
   BatchInputCaseSchema,
@@ -38,6 +41,9 @@ export type ScheduleDay = z.infer<typeof ScheduleDaySchema>;
 export type Schedule = z.infer<typeof ScheduleSchema>;
 export type Coverage = z.infer<typeof CoverageSchema>;
 export type AppendixAKit = z.infer<typeof AppendixAKitSchema>;
+export type ItemOrigin = z.infer<typeof ItemOriginSchema>;
+export type ItemMeta = z.infer<typeof ItemMetaSchema>;
+export type KitItemMetaMap = z.infer<typeof KitItemMetaMapSchema>;
 
 // Appendix B Inferred Types
 export type BatchInputCase = z.infer<typeof BatchInputCaseSchema>;
