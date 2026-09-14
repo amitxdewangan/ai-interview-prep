@@ -22,7 +22,6 @@ import {
   AlertCircle,
   Sparkles,
   Zap,
-  Mic,
   Loader2,
   CheckCircle2,
   Share2,
@@ -467,15 +466,6 @@ export default function KitBuilderPage() {
           >
             <Zap className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">Practice</span>
-          </Link>
-
-          {/* Direct Link to Mock Interview */}
-          <Link
-            href={`/kit/${kitId}/mock`}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-purple-50 px-3.5 py-2 text-xs font-bold text-purple-700 hover:bg-purple-100 dark:bg-purple-950/60 dark:text-purple-300 dark:hover:bg-purple-900 transition"
-          >
-            <Mic className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Mock Room</span>
           </Link>
         </div>
       </div>

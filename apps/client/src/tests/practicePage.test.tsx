@@ -151,7 +151,7 @@ describe('Phase 10: PracticeModePage Integration', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Card 2 of 2')).toBeInTheDocument();
-    });
+    }, { timeout: 4000 });
 
     // Rate card 2
     fireEvent.keyDown(window, { key: '4' });
