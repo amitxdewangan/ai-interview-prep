@@ -31,6 +31,16 @@ export interface SseProgressEvent {
   timestamp: string;
 }
 
+export interface RegenerationResponse {
+  message: string;
+  regeneratedSection: string;
+  preservedCount: number;
+  regeneratedCount: number;
+  kit: AppendixAKit;
+  itemMeta: Record<string, { origin: 'generated' | 'user_edited' | 'user_added'; isPinned: boolean }>;
+  deletedItemIds?: string[];
+}
+
 class ApiClient {
   private token: string | null = null;
 
@@ -154,8 +164,8 @@ class ApiClient {
     });
   }
 
-  async regenerateSection(id: string, section: string): Promise<{ regeneratedSection: string; kit: AppendixAKit; itemMeta: any }> {
-    return this.request(`/api/kits/${id}/regenerate/${section}`, {
+  async regenerateSection(id: string, section: string): Promise<RegenerationResponse> {
+    return this.request<RegenerationResponse>(`/api/kits/${id}/regenerate/${section}`, {
       method: 'POST',
     });
   }
