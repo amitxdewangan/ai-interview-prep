@@ -19,7 +19,7 @@ export class LlmError extends Error {
 export interface LlmClientOptions {
   /** Primary Gemini API key. Defaults to process.env.GEMINI_API_KEY. */
   apiKey?: string;
-  /** Primary model name. Defaults to 'gemini-1.5-flash'. */
+  /** Primary model name. Defaults to process.env.GEMINI_MODEL. */
   model?: string;
   /** Sampling temperature. Defaults to 0.2 for deterministic schema adherence. */
   temperature?: number;
@@ -33,7 +33,7 @@ export interface LlmClientOptions {
   rateLimiter?: TokenBucketRateLimiter;
   /** Secondary fallback API key (e.g. Groq or OpenRouter). Defaults to process.env.GROQ_API_KEY. */
   fallbackApiKey?: string;
-  /** Secondary fallback model. Defaults to 'llama-3.3-70b-versatile'. */
+  /** Secondary fallback model. Defaults to process.env.GROQ_MODEL. */
   fallbackModel?: string;
   /** Custom fetch implementation for testing / mocking. */
   fetchFn?: typeof fetch;
@@ -78,7 +78,7 @@ export class LlmClient {
 
   constructor(options: LlmClientOptions = {}) {
     this.apiKey = options.apiKey ?? process.env.GEMINI_API_KEY ?? '';
-    this.model = options.model ?? 'gemini-1.5-flash';
+    this.model = options.model ?? process.env.GEMINI_MODEL ?? 'gemini-3.6-flash';
     this.temperature = options.temperature ?? 0.2;
     this.maxRetries = options.maxRetries ?? 4;
     this.baseDelayMs = options.baseDelayMs ?? 1000;
@@ -86,12 +86,13 @@ export class LlmClient {
     this.rateLimiter =
       options.rateLimiter ??
       new TokenBucketRateLimiter({
-        requestsPerMinute: 15, // Gemini 1.5 Flash free tier
+        requestsPerMinute: 15, // Gemini Flash free tier
         tokensPerMinute: 32000,
         maxConcurrency: 2,
       });
     this.fallbackApiKey = options.fallbackApiKey ?? process.env.GROQ_API_KEY;
-    this.fallbackModel = options.fallbackModel ?? 'llama-3.3-70b-versatile';
+    this.fallbackModel =
+      options.fallbackModel ?? process.env.GROQ_MODEL ?? 'llama-3.3-70b-versatile';
     this.fetchFn = options.fetchFn ?? globalThis.fetch;
   }
 
@@ -156,7 +157,7 @@ export class LlmClient {
       }
     }
 
-    // 2. If primary exhausted and secondary fallback configured, attempt fallback
+    // 2. If primary exhausted and secondary fallback configured with a valid API key, attempt fallback
     if (this.fallbackApiKey) {
       try {
         return await this.callGroq(prompt, temperature, systemInstruction);

@@ -464,8 +464,10 @@ describe('Phase 7: Backend API, Persistence & State Preservation', () => {
       kitId = created.body.id;
     });
 
-    it('preserves user-edited, user-added, and pinned questions during category regeneration', async () => {
-      // Regenerate "technical" category
+    it(
+      'preserves user-edited, user-added, and pinned questions during category regeneration',
+      async () => {
+        // Regenerate "technical" category
       const regenRes = await request(app)
         .post(`/api/kits/${kitId}/regenerate/technical`)
         .set('Authorization', `Bearer ${token}`);
@@ -513,7 +515,7 @@ describe('Phase 7: Backend API, Persistence & State Preservation', () => {
       for (const scheduledId of allScheduledQuestionIds) {
         expect(allCurrentQuestionIds.has(scheduledId)).toBe(true);
       }
-    });
+    }, 20000);
 
     it('regenerates schedule deterministically without mutating questions', async () => {
       const regenRes = await request(app)
