@@ -1,8 +1,9 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest';
 import request from 'supertest';
 import { createApp } from '../app.js';
-import { UserStore } from '../models/User.js';
-import { KitStore } from '../models/Kit.js';
+import { connectDB, disconnectDB } from '../config/db.js';
+import { UserModel } from '../models/User.js';
+import { KitModel } from '../models/Kit.js';
 import { sseManager } from '../services/sseService.js';
 import type { AppendixAKit } from '@repo/shared';
 
@@ -135,10 +136,20 @@ function createMockKit(): AppendixAKit {
 describe('Phase 7: Backend API, Persistence & State Preservation', () => {
   const app = createApp();
 
-  beforeEach(() => {
-    UserStore.clear();
-    KitStore.clear();
+  beforeAll(async () => {
+    await connectDB(process.env.TEST_MONGODB_URI);
+  });
+
+  beforeEach(async () => {
+    await UserModel.deleteMany({});
+    await KitModel.deleteMany({});
     sseManager.clear();
+  });
+
+  afterAll(async () => {
+    await UserModel.deleteMany({});
+    await KitModel.deleteMany({});
+    await disconnectDB();
   });
 
   // =========================================================================
@@ -468,54 +479,54 @@ describe('Phase 7: Backend API, Persistence & State Preservation', () => {
       'preserves user-edited, user-added, and pinned questions during category regeneration',
       async () => {
         // Regenerate "technical" category
-      const regenRes = await request(app)
-        .post(`/api/kits/${kitId}/regenerate/technical`)
-        .set('Authorization', `Bearer ${token}`);
+        const regenRes = await request(app)
+          .post(`/api/kits/${kitId}/regenerate/technical`)
+          .set('Authorization', `Bearer ${token}`);
 
-      expect(regenRes.status).toBe(200);
-      expect(regenRes.body.regeneratedSection).toBe('technical');
-      // q1 (user_edited) and q2 (pinned) were preserved!
-      expect(regenRes.body.preservedCount).toBe(2);
+        expect(regenRes.status).toBe(200);
+        expect(regenRes.body.regeneratedSection).toBe('technical');
+        // q1 (user_edited) and q2 (pinned) were preserved!
+        expect(regenRes.body.preservedCount).toBe(2);
 
-      const updatedKit: AppendixAKit = regenRes.body.kit;
-      const updatedQuestions = updatedKit.questions;
+        const updatedKit: AppendixAKit = regenRes.body.kit;
+        const updatedQuestions = updatedKit.questions;
 
-      // 1. Verify user_edited q1 survived with exact original prompt
-      const q1 = updatedQuestions.find((q) => q.id === 'q1');
-      expect(q1).toBeDefined();
-      expect(q1?.prompt).toBe('How would you handle race conditions in an asynchronous event pipeline in Node.js?');
+        // 1. Verify user_edited q1 survived with exact original prompt
+        const q1 = updatedQuestions.find((q) => q.id === 'q1');
+        expect(q1).toBeDefined();
+        expect(q1?.prompt).toBe('How would you handle race conditions in an asynchronous event pipeline in Node.js?');
 
-      // 2. Verify pinned q2 survived
-      const q2 = updatedQuestions.find((q) => q.id === 'q2');
-      expect(q2).toBeDefined();
+        // 2. Verify pinned q2 survived
+        const q2 = updatedQuestions.find((q) => q.id === 'q2');
+        expect(q2).toBeDefined();
 
-      // 3. Verify untouched generated q3 was discarded and replaced
-      const q3 = updatedQuestions.find((q) => q.id === 'q3');
-      expect(q3).toBeUndefined();
+        // 3. Verify untouched generated q3 was discarded and replaced
+        const q3 = updatedQuestions.find((q) => q.id === 'q3');
+        expect(q3).toBeUndefined();
 
-      // 4. Verify q4 (behavioural category) was completely untouched!
-      const q4 = updatedQuestions.find((q) => q.id === 'q4');
-      expect(q4).toBeDefined();
-      expect(q4?.category).toBe('behavioural');
+        // 4. Verify q4 (behavioural category) was completely untouched!
+        const q4 = updatedQuestions.find((q) => q.id === 'q4');
+        expect(q4).toBeDefined();
+        expect(q4?.category).toBe('behavioural');
 
-      // 5. Verify new questions were added with non-colliding IDs
-      const newQuestions = updatedQuestions.filter(
-        (q) => q.id !== 'q1' && q.id !== 'q2' && q.id !== 'q4'
-      );
-      expect(newQuestions.length).toBeGreaterThan(0);
-      for (const nq of newQuestions) {
-        expect(nq.id).toMatch(/^q\d+$/);
-        expect(nq.category).toBe('technical');
-      }
+        // 5. Verify new questions were added with non-colliding IDs
+        const newQuestions = updatedQuestions.filter(
+          (q) => q.id !== 'q1' && q.id !== 'q2' && q.id !== 'q4'
+        );
+        expect(newQuestions.length).toBeGreaterThan(0);
+        for (const nq of newQuestions) {
+          expect(nq.id).toMatch(/^q\d+$/);
+          expect(nq.category).toBe('technical');
+        }
 
-      // 6. Verify deterministic coverage and schedule were synchronized
-      expect(updatedKit.schedule.days).toHaveLength(updatedKit.schedule.days_available);
-      const allScheduledQuestionIds = updatedKit.schedule.days.flatMap((d) => d.question_ids);
-      const allCurrentQuestionIds = new Set(updatedQuestions.map((q) => q.id));
-      for (const scheduledId of allScheduledQuestionIds) {
-        expect(allCurrentQuestionIds.has(scheduledId)).toBe(true);
-      }
-    }, 20000);
+        // 6. Verify deterministic coverage and schedule were synchronized
+        expect(updatedKit.schedule.days).toHaveLength(updatedKit.schedule.days_available);
+        const allScheduledQuestionIds = updatedKit.schedule.days.flatMap((d) => d.question_ids);
+        const allCurrentQuestionIds = new Set(updatedQuestions.map((q) => q.id));
+        for (const scheduledId of allScheduledQuestionIds) {
+          expect(allCurrentQuestionIds.has(scheduledId)).toBe(true);
+        }
+      }, 20000);
 
     it('regenerates schedule deterministically without mutating questions', async () => {
       const regenRes = await request(app)
