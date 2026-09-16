@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { UserRegisterSchema, UserLoginSchema } from '@repo/shared';
 import { env } from '../config/env.js';
-import { UserStore } from '../models/User.js';
+import { UserModel } from '../models/User.js';
 
 export class AuthController {
   static async register(req: Request, res: Response): Promise<void> {
@@ -17,22 +17,23 @@ export class AuthController {
     }
 
     const { email, password, name } = parseResult.data;
+    const normalizedEmail = email.toLowerCase().trim();
 
     try {
-      const existing = await UserStore.findByEmail(email);
+      const existing = await UserModel.findOne({ email: normalizedEmail });
       if (existing) {
         res.status(409).json({ error: 'Email already registered' });
         return;
       }
 
       const hashedPassword = await bcrypt.hash(password, 10);
-      const user = await UserStore.create({
-        email,
+      const user = await UserModel.create({
+        email: normalizedEmail,
         password: hashedPassword,
-        name,
+        name: name.trim(),
       });
 
-      const userId = (user as any).id || (user as any)._id.toString();
+      const userId = user._id.toString();
       const token = jwt.sign({ id: userId, email: user.email }, env.JWT_SECRET, {
         expiresIn: '7d',
       });
@@ -45,7 +46,7 @@ export class AuthController {
       });
 
       res.status(201).json({
-        user: typeof user.toProfile === 'function' ? user.toProfile() : user,
+        user: user.toProfile(),
         token,
       });
     } catch (error) {
@@ -65,9 +66,10 @@ export class AuthController {
     }
 
     const { email, password } = parseResult.data;
+    const normalizedEmail = email.toLowerCase().trim();
 
     try {
-      const user = await UserStore.findByEmail(email);
+      const user = await UserModel.findOne({ email: normalizedEmail });
       if (!user) {
         res.status(401).json({ error: 'Invalid email or password' });
         return;
@@ -79,7 +81,7 @@ export class AuthController {
         return;
       }
 
-      const userId = (user as any).id || (user as any)._id.toString();
+      const userId = user._id.toString();
       const token = jwt.sign({ id: userId, email: user.email }, env.JWT_SECRET, {
         expiresIn: '7d',
       });
@@ -92,7 +94,7 @@ export class AuthController {
       });
 
       res.status(200).json({
-        user: typeof user.toProfile === 'function' ? user.toProfile() : user,
+        user: user.toProfile(),
         token,
       });
     } catch (error) {

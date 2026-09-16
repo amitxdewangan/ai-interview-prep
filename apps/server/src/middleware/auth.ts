@@ -1,7 +1,8 @@
 import type { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import mongoose from 'mongoose';
 import { env } from '../config/env.js';
-import { UserStore } from '../models/User.js';
+import { UserModel } from '../models/User.js';
 
 export interface AuthUserPayload {
   id: string;
@@ -40,7 +41,12 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
 
   try {
     const decoded = jwt.verify(token, env.JWT_SECRET) as AuthUserPayload;
-    const user = await UserStore.findById(decoded.id);
+    if (!mongoose.Types.ObjectId.isValid(decoded.id)) {
+      res.status(401).json({ error: 'Unauthorized: Invalid user ID format' });
+      return;
+    }
+
+    const user = await UserModel.findById(decoded.id);
 
     if (!user) {
       res.status(401).json({ error: 'Unauthorized: User not found' });
@@ -48,7 +54,7 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
     }
 
     req.user = { id: decoded.id, email: decoded.email };
-    req.userProfile = typeof user.toProfile === 'function' ? user.toProfile() : user;
+    req.userProfile = user.toProfile();
     next();
   } catch (error) {
     res.status(401).json({ error: 'Unauthorized: Invalid or expired token' });
@@ -65,10 +71,12 @@ export async function optionalAuth(req: Request, res: Response, next: NextFuncti
 
   try {
     const decoded = jwt.verify(token, env.JWT_SECRET) as AuthUserPayload;
-    const user = await UserStore.findById(decoded.id);
-    if (user) {
-      req.user = { id: decoded.id, email: decoded.email };
-      req.userProfile = typeof user.toProfile === 'function' ? user.toProfile() : user;
+    if (mongoose.Types.ObjectId.isValid(decoded.id)) {
+      const user = await UserModel.findById(decoded.id);
+      if (user) {
+        req.user = { id: decoded.id, email: decoded.email };
+        req.userProfile = user.toProfile();
+      }
     }
   } catch {
     // Ignore invalid tokens in optional auth
