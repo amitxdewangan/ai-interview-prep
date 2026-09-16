@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { TokenBucketRateLimiter } from './rateLimiter.js';
 import { parseAndValidateJson } from './jsonParser.js';
+import { env } from '../config/env.js';
 
 export class LlmError extends Error {
   public status?: number;
@@ -77,8 +78,8 @@ export class LlmClient {
   private readonly fetchFn: typeof fetch;
 
   constructor(options: LlmClientOptions = {}) {
-    this.apiKey = options.apiKey ?? process.env.GEMINI_API_KEY ?? '';
-    this.model = options.model ?? process.env.GEMINI_MODEL ?? 'gemini-3.6-flash';
+    this.apiKey = options.apiKey ?? env.GEMINI_API_KEY ?? '';
+    this.model = options.model ?? env.GEMINI_MODEL ?? '';
     this.temperature = options.temperature ?? 0.2;
     this.maxRetries = options.maxRetries ?? 4;
     this.baseDelayMs = options.baseDelayMs ?? 1000;
@@ -90,9 +91,9 @@ export class LlmClient {
         tokensPerMinute: 32000,
         maxConcurrency: 2,
       });
-    this.fallbackApiKey = options.fallbackApiKey ?? process.env.GROQ_API_KEY;
+    this.fallbackApiKey = options.fallbackApiKey ?? env.GROQ_API_KEY;
     this.fallbackModel =
-      options.fallbackModel ?? process.env.GROQ_MODEL ?? 'llama-3.3-70b-versatile';
+      options.fallbackModel ?? env.GROQ_MODEL ?? '';
     this.fetchFn = options.fetchFn ?? globalThis.fetch;
   }
 
