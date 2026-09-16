@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import type {
   AppendixAKit,
   Question,
@@ -10,7 +11,7 @@ import { allocateSchedule } from '../pipeline/deterministic/scheduleEngine.js';
 import { generateCategoryQuestionsDrafts } from '../pipeline/steps/04_generateQuestions.js';
 import { generateBrief } from '../pipeline/steps/03_generateBrief.js';
 import { researchCompany } from '../pipeline/steps/02_researchCompany.js';
-import { KitStore, type IKitState } from '../models/Kit.js';
+import { KitModel, type IKitState } from '../models/Kit.js';
 import { LlmClient } from '../llm/client.js';
 
 export type RegenerableSection =
@@ -53,15 +54,25 @@ export class RegenerationService {
       );
     }
 
+    if (!mongoose.Types.ObjectId.isValid(kitId)) {
+      throw new Error(`Kit not found or access denied`);
+    }
+
     const targetSection = section as RegenerableSection;
-    const kitDoc = await KitStore.findById(kitId, userId);
+    const kitDoc = await KitModel.findOne({ _id: kitId, userId });
 
     if (!kitDoc) {
       throw new Error(`Kit not found or access denied`);
     }
 
     const currentKit: AppendixAKit = JSON.parse(JSON.stringify(kitDoc.kit));
-    const currentMeta: KitItemMetaMap = { ...(kitDoc.itemMeta || {}) };
+    const rawMeta = kitDoc.itemMeta;
+    const currentMeta: KitItemMetaMap =
+      rawMeta instanceof Map
+        ? Object.fromEntries(rawMeta.entries())
+        : rawMeta
+          ? JSON.parse(JSON.stringify(rawMeta))
+          : {};
     const deletedItemIds = [...(kitDoc.deletedItemIds || [])];
 
     // =========================================================================
@@ -80,11 +91,12 @@ export class RegenerationService {
 
       currentKit.company_brief = newBrief;
 
-      await KitStore.update(kitId, userId, {
-        kit: currentKit,
-        itemMeta: currentMeta,
-        deletedItemIds,
-      });
+      kitDoc.kit = currentKit;
+      kitDoc.itemMeta = currentMeta as any;
+      kitDoc.deletedItemIds = deletedItemIds;
+      kitDoc.markModified('kit');
+      kitDoc.markModified('itemMeta');
+      await kitDoc.save();
 
       return {
         message: 'Company brief regenerated successfully.',
@@ -109,11 +121,12 @@ export class RegenerationService {
 
       currentKit.schedule = newSchedule;
 
-      await KitStore.update(kitId, userId, {
-        kit: currentKit,
-        itemMeta: currentMeta,
-        deletedItemIds,
-      });
+      kitDoc.kit = currentKit;
+      kitDoc.itemMeta = currentMeta as any;
+      kitDoc.deletedItemIds = deletedItemIds;
+      kitDoc.markModified('kit');
+      kitDoc.markModified('itemMeta');
+      await kitDoc.save();
 
       return {
         message: 'Schedule reallocated successfully.',
@@ -222,11 +235,12 @@ export class RegenerationService {
     );
 
     // Persist updated kit state
-    await KitStore.update(kitId, userId, {
-      kit: currentKit,
-      itemMeta: currentMeta,
-      deletedItemIds,
-    });
+    kitDoc.kit = currentKit;
+    kitDoc.itemMeta = currentMeta as any;
+    kitDoc.deletedItemIds = deletedItemIds;
+    kitDoc.markModified('kit');
+    kitDoc.markModified('itemMeta');
+    await kitDoc.save();
 
     return {
       message: `Regenerated category '${category}'. Preserved ${preservedQuestions.length} custom/pinned question(s), added ${newlyGeneratedQuestions.length} new question(s).`,

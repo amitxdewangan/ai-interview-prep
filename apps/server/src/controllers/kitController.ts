@@ -1,7 +1,8 @@
 import type { Request, Response } from 'express';
 import crypto from 'node:crypto';
+import mongoose from 'mongoose';
 import { AppendixAKitSchema } from '@repo/shared';
-import { KitStore } from '../models/Kit.js';
+import { KitModel, initializeItemMeta } from '../models/Kit.js';
 import { generatePrepKit } from '../pipeline/orchestrator.js';
 import { RegenerationService } from '../services/regenerationService.js';
 import { sseManager, type SseEvent } from '../services/sseService.js';
@@ -35,11 +36,12 @@ export class KitController {
           return;
         }
 
-        const created = await KitStore.create({
+        const meta = req.body.itemMeta ?? initializeItemMeta(parseResult.data);
+        const created = await KitModel.create({
           userId,
           kit: parseResult.data,
-          itemMeta: req.body.itemMeta,
-          deletedItemIds: req.body.deletedItemIds,
+          itemMeta: meta,
+          deletedItemIds: req.body.deletedItemIds || [],
         });
 
         res.status(201).json(created);
@@ -61,9 +63,12 @@ export class KitController {
         days,
       });
 
-      const created = await KitStore.create({
+      const meta = initializeItemMeta(generatedKit);
+      const created = await KitModel.create({
         userId,
         kit: generatedKit,
+        itemMeta: meta,
+        deletedItemIds: [],
       });
 
       res.status(201).json(created);
@@ -85,7 +90,7 @@ export class KitController {
     }
 
     try {
-      const kits = await KitStore.findByUserId(userId);
+      const kits = await KitModel.find({ userId }).sort({ updatedAt: -1 });
       res.status(200).json(kits);
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
@@ -105,9 +110,13 @@ export class KitController {
     }
 
     const id = paramToString(req.params.id);
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      res.status(404).json({ error: 'Kit not found or access denied' });
+      return;
+    }
 
     try {
-      const kit = await KitStore.findById(id, userId);
+      const kit = await KitModel.findOne({ _id: id, userId });
       if (!kit) {
         res.status(404).json({ error: 'Kit not found or access denied' });
         return;
@@ -132,9 +141,13 @@ export class KitController {
     }
 
     const id = paramToString(req.params.id);
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      res.status(404).json({ error: 'Kit not found or access denied' });
+      return;
+    }
 
     try {
-      const existing = await KitStore.findById(id, userId);
+      const existing = await KitModel.findOne({ _id: id, userId });
       if (!existing) {
         res.status(404).json({ error: 'Kit not found or access denied' });
         return;
@@ -151,11 +164,16 @@ export class KitController {
         }
       }
 
-      const updated = await KitStore.update(id, userId, {
-        kit: req.body.kit,
-        itemMeta: req.body.itemMeta,
-        deletedItemIds: req.body.deletedItemIds,
-      });
+      const updatePayload: Record<string, any> = {};
+      if (req.body.kit) updatePayload.kit = req.body.kit;
+      if (req.body.itemMeta) updatePayload.itemMeta = req.body.itemMeta;
+      if (req.body.deletedItemIds) updatePayload.deletedItemIds = req.body.deletedItemIds;
+
+      const updated = await KitModel.findOneAndUpdate(
+        { _id: id, userId },
+        { $set: updatePayload },
+        { returnDocument: 'after' }
+      );
 
       res.status(200).json(updated);
     } catch (error) {
@@ -176,10 +194,14 @@ export class KitController {
     }
 
     const id = paramToString(req.params.id);
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      res.status(404).json({ error: 'Kit not found or access denied' });
+      return;
+    }
 
     try {
-      const deleted = await KitStore.delete(id, userId);
-      if (!deleted) {
+      const resDelete = await KitModel.deleteOne({ _id: id, userId });
+      if ((resDelete.deletedCount || 0) === 0) {
         res.status(404).json({ error: 'Kit not found or access denied' });
         return;
       }
@@ -263,9 +285,15 @@ export class KitController {
 
         // If user is authenticated, save kit
         let savedKitId: string | undefined;
-        if (userId !== 'anonymous') {
-          const saved = await KitStore.create({ userId, kit });
-          savedKitId = (saved as any).id || (saved as any)._id?.toString();
+        if (userId !== 'anonymous' && mongoose.Types.ObjectId.isValid(userId)) {
+          const meta = initializeItemMeta(kit);
+          const saved = await KitModel.create({
+            userId,
+            kit,
+            itemMeta: meta,
+            deletedItemIds: [],
+          });
+          savedKitId = saved._id.toString();
         }
 
         sseManager.completeSession(sessionId, {
