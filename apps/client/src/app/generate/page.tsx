@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { api, type SseProgressEvent } from '@/lib/api';
 import { GenerationProgress, type SseLogEntry } from '@/components/progress/GenerationProgress';
-import { BatchUploadAccordion, type BatchCase } from '@/components/batch/BatchUploadAccordion';
+// import { BatchUploadAccordion, type BatchCase } from '@/components/batch/BatchUploadAccordion';
 import {
   Sparkles,
   Globe,
@@ -153,12 +153,12 @@ export default function GeneratePage() {
     }
   };
 
-  const handleBatchCaseLoaded = (caseItem: BatchCase) => {
-    setJd(caseItem.jd);
-    setCompanyUrl(caseItem.company_url);
-    setDays(caseItem.days);
-    setValidationErrors({});
-  };
+  // const handleBatchCaseLoaded = (caseItem: BatchCase) => {
+  //   setJd(caseItem.jd);
+  //   setCompanyUrl(caseItem.company_url);
+  //   setDays(caseItem.days);
+  //   setValidationErrors({});
+  // };
 
   return (
     <div className="mx-auto max-w-4xl space-y-8">
@@ -241,7 +241,7 @@ export default function GeneratePage() {
         /* Form Inputs */
         <form onSubmit={handleStartGeneration} className="space-y-6">
           {/* Batch Upload Accordion */}
-          <BatchUploadAccordion onSelectCase={handleBatchCaseLoaded} />
+          {/* <BatchUploadAccordion onSelectCase={handleBatchCaseLoaded} /> */}
 
           {/* Job Description Textarea */}
           <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
@@ -254,9 +254,8 @@ export default function GeneratePage() {
                 Job Description (JD)
               </label>
               <span
-                className={`text-xs font-mono ${
-                  jd.length > 0 ? 'text-slate-600 dark:text-slate-400 font-semibold' : 'text-slate-400'
-                }`}
+                className={`text-xs font-mono ${jd.length > 0 ? 'text-slate-600 dark:text-slate-400 font-semibold' : 'text-slate-400'
+                  }`}
               >
                 {jd.length} characters
               </span>
@@ -271,11 +270,10 @@ export default function GeneratePage() {
                 if (validationErrors.jd) setValidationErrors((prev) => ({ ...prev, jd: undefined }));
               }}
               placeholder="Paste the full job description here (e.g. responsibilities, requirements, qualifications)..."
-              className={`w-full rounded-xl border p-3.5 text-sm font-mono leading-relaxed transition focus:outline-none focus:ring-2 dark:bg-slate-950 ${
-                validationErrors.jd
+              className={`w-full rounded-xl border p-3.5 text-sm font-mono leading-relaxed transition focus:outline-none focus:ring-2 dark:bg-slate-950 ${validationErrors.jd
                   ? 'border-rose-400 focus:ring-rose-400 dark:border-rose-500'
                   : 'border-slate-200 focus:border-indigo-500 focus:ring-indigo-500 dark:border-slate-800'
-              }`}
+                }`}
             />
             {validationErrors.jd && (
               <p className="mt-1.5 flex items-center gap-1 text-xs text-rose-600 dark:text-rose-400">
@@ -310,11 +308,10 @@ export default function GeneratePage() {
                   }
                 }}
                 placeholder="https://company.com"
-                className={`w-full rounded-xl border p-3 text-sm transition focus:outline-none focus:ring-2 dark:bg-slate-950 ${
-                  validationErrors.companyUrl
-                    ? 'border-rose-400 focus:ring-rose-400 dark:border-rose-500'
-                    : 'border-slate-200 focus:border-indigo-500 focus:ring-indigo-500 dark:border-slate-800'
-                }`}
+                className={`w-full rounded-xl border p-3 text-sm transition focus:outline-none focus:ring-2 dark:bg-slate-950 ${validationErrors.companyUrl
+                  ? 'border-rose-400 focus:ring-rose-400 dark:border-rose-500'
+                  : 'border-slate-200 focus:border-indigo-500 focus:ring-indigo-500 dark:border-slate-800'
+                  }`}
               />
               {validationErrors.companyUrl && (
                 <p className="mt-1.5 flex items-center gap-1 text-xs text-rose-600 dark:text-rose-400">
